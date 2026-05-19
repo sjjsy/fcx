@@ -9,17 +9,17 @@ Usage:
   fcx --version
 
 Options:
+  -h --help        Show this screen.
+  --version        Show version.
+  -I --init        Copy built-in converter file(s) to ~/.config/fcx/converters/.
+  -d --deps        Check deps for all converters, or for named TARGET ext(s).
+  -m --methods     List all converters for each TARGET ext.
+  -e --inputs      List input extensions that can produce each output ext.
+  -o --outputs     List output extensions producible from each input ext.
+  -R --recover     Restore most-recent fcx backup from Trash into CWD.
   -O --overwrite   Skip trash backup for same-format (in-place) transforms.
   -v --verbose     Stream live stdout/stderr from every shell command.
   --dry-run        Print commands without executing.
-  -d --deps        Check deps for all converters, or for named TARGET ext(s).
-  -m --methods     List all converters for each TARGET ext.
-  --inputs         List input extensions that can produce each output ext.
-  --outputs        List output extensions producible from each input ext.
-  -R --recover     Restore most-recent fcx backup from Trash into CWD.
-  --init           Copy built-in converter file(s) to ~/.config/fcx/converters/.
-  -h --help        Show this screen.
-  --version        Show version.
 
 TARGET syntax:
   The first positional argument is treated as TARGET when it does not name an
@@ -68,10 +68,10 @@ Examples:
   fcx -d                                              # check all deps
   fcx -d pdf                                          # check →pdf converter deps
   fcx -m pdf                                          # list all →pdf converters
-  fcx --outputs docx                                  # what can docx become?
-  fcx --inputs pdf                                    # what converts to pdf?
-  fcx --init                                          # list built-in converter files
-  fcx --init pandoc                                   # copy pandoc.py to user config dir
+  fcx -o docx                                         # what can docx become?
+  fcx -e pdf                                          # what converts to pdf?
+  fcx -I                                              # list built-in converter files
+  fcx -I pandoc                                       # copy pandoc.py to user config dir
 """
 
 from __future__ import annotations
