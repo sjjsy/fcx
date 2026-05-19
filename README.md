@@ -80,16 +80,17 @@ Usage:
 
 Options:
   -O --overwrite   Skip trash backup for same-format (in-place) transforms.
-  -v --verbose     Stream live stdout/stderr from every shell command.
-  --dry-run        Print commands without executing.
-  -d --deps        Check deps for all converters, or for named TARGET ext(s).
-  -m --methods     List all converters for each TARGET ext.
-  --inputs         List input extensions that can produce each output ext.
-  --outputs        List output extensions producible from each input ext.
-  -R --recover     Restore most-recent fcx backup from Trash into CWD.
-  --init           Copy built-in converter file(s) to ~/.config/fcx/converters/.
   -h --help        Show this screen.
   --version        Show version.
+  -I --init        Copy built-in converter file(s) to ~/.config/fcx/converters/.
+  -d --deps        Check deps for all converters, or for named TARGET ext(s).
+  -m --methods     List all converters for each TARGET ext.
+  -i --inputs      List input extensions that can produce each output ext.
+  -o --outputs     List output extensions producible from each input ext.
+  -R --recover     Restore most-recent fcx backup from Trash into CWD.
+  -O --overwrite   Skip trash backup for same-format (in-place) transforms.
+  -v --verbose     Stream live stdout/stderr from every shell command.
+  --dry-run        Print commands without executing.
 ```
 
 ## TARGET syntax
@@ -238,8 +239,8 @@ fcx -d                   # all converters and their deps
 fcx -d pdf               # deps for →pdf converters only
 fcx -m pdf               # list all →pdf converters, which would be selected
 fcx -m jpg               # list all →jpg converters
-fcx --inputs pdf         # what input formats can produce pdf?
-fcx --outputs docx       # what output formats can docx produce?
+fcx -i pdf               # what input formats can produce pdf?
+fcx -o docx              # what output formats can docx produce?
 ```
 
 ## Extending fcx
@@ -257,8 +258,8 @@ Converters live in `CONVERTERS` lists inside Python files. Three layers are merg
 Copy a built-in converter file to your user config dir:
 
 ```bash
-fcx --init pandoc          # copies pandoc.py to ~/.config/fcx/converters/pandoc.py
-fcx --init                 # list all built-in converter files
+fcx -I pandoc              # copies pandoc.py to ~/.config/fcx/converters/pandoc.py
+fcx -I                     # list all built-in converter files
 ```
 
 Then edit the copy. Delete the file to revert to the built-in.
@@ -362,8 +363,8 @@ fcx -d jpg                                 # only jpg-related converters
 
 # Discovery
 fcx -m pdf                                 # what converters exist for →pdf?
-fcx --inputs pdf                           # what can be converted to pdf?
-fcx --outputs docx                         # what can docx become?
+fcx -i pdf                                 # what can be converted to pdf?
+fcx -o docx                                # what can docx become?
 
 # Recovery
 fcx -R                                     # restore last backup
