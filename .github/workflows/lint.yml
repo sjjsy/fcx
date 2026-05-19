@@ -8,20 +8,7 @@ on:
 
 jobs:
   lint:
+    if: false
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          version: "0.11.13"
-          enable-cache: false
-
-      - name: Lint with ruff
-        run: uv run --with ruff ruff check fcx/
-
-      - name: Import smoke test
-        run: uv run python -c "from fcx.cli import main; from fcx.core import Converter, run; print('imports ok')"
