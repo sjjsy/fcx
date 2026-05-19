@@ -14,7 +14,7 @@ Options:
   -I --init        Copy built-in converter file(s) to ~/.config/fcx/converters/.
   -d --deps        Check deps for all converters, or for named TARGET ext(s).
   -m --methods     List all converters for each TARGET ext.
-  -e --inputs      List input extensions that can produce each output ext.
+  -i --inputs      List input extensions that can produce each output ext.
   -o --outputs     List output extensions producible from each input ext.
   -R --recover     Restore most-recent fcx backup from Trash into CWD.
   -O --overwrite   Skip trash backup for same-format (in-place) transforms.
