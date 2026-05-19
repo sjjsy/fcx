@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["fcx", "fcx.converters"]
+
+[tool.setuptools.package-data]
+fcx = []
+
+[tool.setuptools.dynamic]
+version = { attr = "fcx.__version__" }
+
+[project]
+name = "fcx"
+dynamic = ["version"]
+authors = [
+    { name = "Samuel Sydänlammi", email = "samuel.sydanlammi@synsigma.com" },
+]
+maintainers = [{ name = "Samuel Sydänlammi", email = "samuel.sydanlammi@synsigma.com" }]
+description = "Unified file conversion CLI: dispatch to pandoc, ImageMagick, LibreOffice & more through an extensible converter registry."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "GNU Affero General Public License v3 or later" }
+keywords = ["file-conversion", "pandoc", "imagemagick", "libreoffice", "pdf", "cli", "converter"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Utilities",
+    "Topic :: Multimedia :: Graphics :: Graphics Conversion",
+    "Topic :: Text Processing :: Markup",
+]
+dependencies = [
+    "docopt>=0.6.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/sjjsy/fcx"
+Repository = "https://github.com/sjjsy/fcx"
+Documentation = "https://github.com/sjjsy/fcx#readme"
+Issues = "https://github.com/sjjsy/fcx/issues"
+Changelog = "https://github.com/sjjsy/fcx/releases"
+
+[project.scripts]
+fcx = "fcx.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.4.0",
+]
+test = [
+    "pytest>=7.4",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra -q"
+
+[tool.ruff]
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "UP"]
+ignore = ["UP007", "E501"]

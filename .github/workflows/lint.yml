@@ -1,0 +1,24 @@
+name: Lint
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.11.13"
+
+      - name: Lint with ruff
+        run: uv run --with ruff ruff check fcx/
+
+      - name: Import smoke test
+        run: uv run python -c "from fcx.cli import main; from fcx.core import Converter, run; print('imports ok')"
