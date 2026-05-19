@@ -69,7 +69,7 @@ Examples:
   fcx -d pdf                                          # check →pdf converter deps
   fcx -m pdf                                          # list all →pdf converters
   fcx -o docx                                         # what can docx become?
-  fcx -e pdf                                          # what converts to pdf?
+  fcx -i pdf                                          # what converts to pdf?
   fcx -I                                              # list built-in converter files
   fcx -I pandoc                                       # copy pandoc.py to user config dir
 """

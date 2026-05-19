@@ -73,13 +73,17 @@ Only the tools needed for your conversions need to be installed. Use `fcx -d` to
 ## CLI reference
 
 ```
+fcx — File Converter
+
+Convert files to a different format or apply in-place transforms.
+Inputs are merged (pdf, txt) or converted individually (img, same-format).
+
 Usage:
   fcx [options] [ARGS ...]
   fcx -h | --help
   fcx --version
 
 Options:
-  -O --overwrite   Skip trash backup for same-format (in-place) transforms.
   -h --help        Show this screen.
   --version        Show version.
   -I --init        Copy built-in converter file(s) to ~/.config/fcx/converters/.
@@ -91,62 +95,58 @@ Options:
   -O --overwrite   Skip trash backup for same-format (in-place) transforms.
   -v --verbose     Stream live stdout/stderr from every shell command.
   --dry-run        Print commands without executing.
-```
 
-## TARGET syntax
+TARGET syntax:
+  The first positional argument is treated as TARGET when it does not name an
+  existing file on disk.  It takes the form  SPEC[:METHOD[:PARAMS]]  where:
 
-```
-SPEC[:METHOD[:PARAMS]]
-```
+    SPEC     Output extension (pdf, txt, png, jpg, wav, ...) or explicit output
+             file path (report.pdf, out/notes.txt, ...).
+             Omit entirely to default to "pdf".
+    METHOD   Name or unique prefix of the converter to prefer, e.g.
+             pandoc, loffice, wk, l1, crop.  Fuzzy prefix-matched against
+             converter names; falls back to the next available converter.
+    PARAMS   Parameter string passed verbatim to the converter function.
+             Some converters require it (e.g. crop:50x50, annotate:Draft v2).
 
-| Part | Description |
-|------|-------------|
-| `SPEC` | Output extension (`pdf`, `jpg`, …) or explicit output path (`report.pdf`). Omit to default to `pdf`. |
-| `METHOD` | Name or unique prefix of the converter to prefer (e.g. `pandoc`, `l1`, `crop`). Fuzzy prefix-matched; falls back to the next available converter. |
-| `PARAMS` | Parameter string passed verbatim to the converter. Some converters require it. |
+  Examples:
+    pdf                  pdf:pandoc            jpg:l1
+    jpg:crop:50x50       jpg:annotate:Draft v2 report.pdf:loffice
+    wav:16k
 
-**Examples:**
+Output file naming:
+  SPEC is a path  → that is the output file.
+  SPEC is an ext, merge mode (→pdf/txt)  → {first_input_stem}.{ext} in CWD.
+  SPEC is an ext, per-file mode          → {each_input_stem}.{ext} in CWD.
+  Same-format transform                  → input file path (in-place).
 
-| TARGET | Meaning |
-|--------|---------|
-| `pdf` | Convert to PDF using best available converter |
-| `pdf:pandoc` | Force pandoc (or pandoc-wk if available) |
-| `jpg:l1` | In-place JPG compression at quality 85 |
-| `jpg:crop:50x50` | Center-crop to 50% of each axis |
-| `jpg:annotate:Draft v2` | Overlay label "Draft v2" |
-| `report.pdf` | Output to explicit path `report.pdf` |
-| `wav:16k` | Convert audio to 16 kHz mono WAV |
+Trash backup (same-format transforms):
+  Before in-place transforms, inputs are copied to:
+    ~/.local/share/Trash/files/fcx_YYYYMMDD_HHMMSS_EXT/
+  with a matching .trashinfo sidecar.  No external tools needed.
+  Use -R / --recover to restore the most recent backup into CWD.
+  Use -O / --overwrite to skip the backup entirely.
 
-## Merge vs per-file mode
-
-| to_format | mode | notes |
-|-----------|------|-------|
-| `pdf`, `txt` | **merge** | all inputs → one output file |
-| same as input | **in-place** | per-file, trash backup first |
-| anything else | **per-file** | each input → own output file |
-
-### Output naming
-
-- `SPEC` is a path → that is the output file
-- Merge mode → `{first_input_stem}.{ext}` in CWD
-- Per-file mode → `{each_input_stem}.{ext}` in CWD
-- In-place → modifies the input file in-place
-
-## In-place transforms and trash backup
-
-When the output format matches the input format, `fcx` runs an in-place transform. Before modifying anything it copies all input files to a timestamped FreeDesktop Trash directory:
-
-```
-~/.local/share/Trash/files/fcx_20260519_143022_jpg/
-~/.local/share/Trash/info/fcx_20260519_143022_jpg.trashinfo
-```
-
-The backup is pure Python — no external trash tools needed. Recovery is one command:
-
-```bash
-fcx -R         # restore most recent backup into CWD
-fcx -R jpg     # restore most recent jpg backup
-fcx -O ...     # skip backup entirely (--overwrite)
+Examples:
+  fcx report.pdf intro.pdf chapter.docx diagram.svg   # merge → pdf
+  fcx pdf report.pdf intro.pdf chapter.docx           # same, explicit ext
+  fcx txt notes.txt paper.pdf slides.pptx             # merge → txt
+  fcx png *.svg                                       # batch svg → png
+  fcx report.pdf:pandoc chapter.md appendix.md        # force pandoc
+  fcx jpg:l1 photos/*.jpg                             # compress to trash
+  fcx jpg:l1 -O photos/*.jpg                          # compress, no backup
+  fcx jpg:crop:50x50 photos/*.jpg                     # center-crop 50%
+  fcx jpg:annotate:Draft v2 *.jpg                     # annotate all
+  fcx wav:16k recordings/*.mp3                        # audio → 16 kHz mono
+  fcx -R                                              # recover last backup
+  fcx -R jpg                                          # recover last jpg backup
+  fcx -d                                              # check all deps
+  fcx -d pdf                                          # check →pdf converter deps
+  fcx -m pdf                                          # list all →pdf converters
+  fcx -o docx                                         # what can docx become?
+  fcx -i pdf                                          # what converts to pdf?
+  fcx -I                                              # list built-in converter files
+  fcx -I pandoc                                       # copy pandoc.py to user config dir
 ```
 
 ## Registered converters
