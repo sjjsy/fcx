@@ -1,6 +1,6 @@
-# fcx — File Converter
+# fcx — File Conversion Exchange
 
-Unified file conversion CLI for Linux. Converts documents, images, and audio
+File conversion exchange for Linux. Converts documents, images, and audio
 to PDF, text, markup, or other image formats by dispatching to system tools
 (pandoc, ImageMagick, LibreOffice, etc.) through an extensible converter registry.
 

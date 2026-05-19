@@ -18,7 +18,7 @@ authors = [
     { name = "Samuel Sydänlammi", email = "samuel.sydanlammi@synsigma.com" },
 ]
 maintainers = [{ name = "Samuel Sydänlammi", email = "samuel.sydanlammi@synsigma.com" }]
-description = "Unified file conversion CLI: dispatch to pandoc, ImageMagick, LibreOffice & more through an extensible converter registry."
+description = "File conversion exchange for Linux: one command routes files to pandoc, ImageMagick, LibreOffice & more through an extensible converter registry."
 readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "GNU Affero General Public License v3 or later" }
