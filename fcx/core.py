@@ -11,6 +11,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple
 
+from . import color
+
 # ── Global runtime flags (set by cli.py before any conversion) ──
 verbose: bool = False
 dry_run: bool = False
@@ -35,7 +37,7 @@ class Converter:
 # ── Shell command runner ──────────────────────────────────────────────────────
 
 def run(cmd: list, *, capture: bool = False) -> str:
-    print(f"[CMD] {shlex.join(str(c) for c in cmd)}")
+    print(f"{color.yellow('[CMD]')} {shlex.join(str(c) for c in cmd)}")
     if dry_run:
         return ""
     if verbose:
@@ -90,7 +92,7 @@ def trash_backup(files: list, oext: str) -> Path:
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     if dry_run:
         backup_dir = _TRASH_FILES / f"fcx_{stamp}_{oext}"
-        print(f"[TRASH] (dry-run) would back up {len(files)} file(s) to {backup_dir}")
+        print(f"{color.cyan('[TRASH]')} (dry-run) would back up {len(files)} file(s) to {backup_dir}")
         return backup_dir
     backup_name = f"fcx_{stamp}_{oext}"
     backup_dir = _TRASH_FILES / backup_name
@@ -109,7 +111,7 @@ def trash_backup(files: list, oext: str) -> Path:
         f"Path={backup_dir}\n"
         f"DeletionDate={datetime.now().strftime('%Y-%m-%dT%H:%M:%S')}\n"
     )
-    print(f"[TRASH] {backup_dir}  ({len(files)} file(s) backed up)")
+    print(f"{color.cyan('[TRASH]')} {backup_dir}  ({len(files)} file(s) backed up)")
     return backup_dir
 
 
@@ -134,7 +136,7 @@ def recover_from_trash(ext: Optional[str] = None) -> None:
     src = candidates[0]
     dst = Path.cwd() / src.name
     shutil.move(str(src), str(dst))
-    print(f"[RECOVER] {src.name} → {dst}")
+    print(f"{color.cyan('[RECOVER]')} {src.name} → {dst}")
 
     info_file = _TRASH_INFO / f"{src.name}.trashinfo"
     if info_file.exists():
@@ -158,7 +160,7 @@ def _load_layer(directory: Path) -> list:
         try:
             spec.loader.exec_module(mod)
         except Exception as exc:
-            print(f"[WARN] Failed to load {py_file}: {exc}", file=sys.stderr)
+            print(f"{color.yellow('[WARN]')} Failed to load {py_file}: {exc}", file=sys.stderr)
             continue
         if hasattr(mod, "CONVERTERS"):
             converters.extend(mod.CONVERTERS)

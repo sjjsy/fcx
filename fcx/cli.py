@@ -1,9 +1,15 @@
-"""fcx — File Converter
+"""fcx — File Converter Exchange
 
 Convert files to a different format or apply in-place transforms.
 Inputs are merged (pdf, txt) or converted individually (img, same-format).
 
 Usage:
+  fcx (-d | --deps)    [EXT ...]
+  fcx (-m | --methods) OEXT [OEXT ...]
+  fcx (-i | --inputs)  OEXT [OEXT ...]
+  fcx (-o | --outputs) IEXT [IEXT ...]
+  fcx (-R | --recover) [EXT]
+  fcx (-I | --init)    [TOOL]
   fcx [options] [ARGS ...]
   fcx -h | --help
   fcx --version
@@ -11,11 +17,11 @@ Usage:
 Options:
   -h --help        Show this screen.
   --version        Show version.
-  -I --init        Copy built-in converter file(s) to ~/.config/fcx/converters/.
-  -d --deps        Check deps for all converters, or for named TARGET ext(s).
-  -m --methods     List all converters for each TARGET ext.
-  -i --inputs      List input extensions that can produce each output ext.
-  -o --outputs     List output extensions producible from each input ext.
+  -I --init        List built-in converter files or copy TOOL to user config dir.
+  -d --deps        Check deps for all converters, or filter by EXT(s).
+  -m --methods     List converters for each output OEXT.
+  -i --inputs      List source formats that produce each output OEXT.
+  -o --outputs     List output formats each input IEXT can produce.
   -R --recover     Restore most-recent fcx backup from Trash into CWD.
   -O --overwrite   Skip trash backup for same-format (in-place) transforms.
   -v --verbose     Stream live stdout/stderr from every shell command.
@@ -76,16 +82,15 @@ Examples:
 
 from __future__ import annotations
 
-import os
 import shutil
 import sys
-import tempfile
 from pathlib import Path
 from typing import Optional
 
 from docopt import docopt
 
 from . import __version__
+from . import color
 from . import core
 
 
@@ -135,7 +140,7 @@ def _cmd_convert(positionals: list, overwrite: bool) -> int:
         target_str = "pdf"
 
     if not files:
-        print("[ERROR] No input files specified.", file=sys.stderr)
+        print(f"{color.red('[ERROR]')} No input files specified.", file=sys.stderr)
         return 1
 
     spec, method, params = _parse_target(target_str)
@@ -145,15 +150,11 @@ def _cmd_convert(positionals: list, overwrite: bool) -> int:
     file_paths = [Path(f) for f in files]
     for fp in file_paths:
         if not fp.exists():
-            print(f"[ERROR] Input file not found: {fp}", file=sys.stderr)
+            print(f"{color.red('[ERROR]')} Input file not found: {fp}", file=sys.stderr)
             return 1
 
-    # Determine output path when spec is a full path
     explicit_output = Path(spec) if spec_is_path else None
 
-    # Group files by extension for converter selection
-    # For simplicity: all inputs must have the same extension, or we use a
-    # "wildcard" from_format. Pick converter based on most common input ext.
     from collections import Counter
     ext_counts = Counter(fp.suffix.lstrip(".").lower() for fp in file_paths)
     input_ext = ext_counts.most_common(1)[0][0] if ext_counts else ""
@@ -161,7 +162,7 @@ def _cmd_convert(positionals: list, overwrite: bool) -> int:
     conv, layer = core.select_converter(convs, input_ext, to_ext, method)
     if conv is None:
         print(
-            f"[ERROR] No converter available for {input_ext!r} → {to_ext!r}"
+            f"{color.red('[ERROR]')} No converter available for {input_ext!r} → {to_ext!r}"
             + (f" (method: {method!r})" if method else ""),
             file=sys.stderr,
         )
@@ -170,17 +171,17 @@ def _cmd_convert(positionals: list, overwrite: bool) -> int:
 
     mode = core.resolve_mode(conv, input_ext)
 
+    def _print_convert(inputs, out):
+        src = "  ".join(str(f) for f in inputs)
+        print(f"{color.cyan('[CONVERT]')} {src} → {out}  {color.dim(f'[{conv.name}]')}")
+
     if mode == "merge":
-        if explicit_output:
-            out_path = explicit_output
-        else:
-            stem = file_paths[0].stem
-            out_path = Path.cwd() / f"{stem}.{to_ext}"
-        print(f"[CONVERT] {[str(f) for f in file_paths]} → {out_path}  [{conv.name}]")
+        out_path = explicit_output or (Path.cwd() / f"{file_paths[0].stem}.{to_ext}")
+        _print_convert(file_paths, out_path)
         try:
             conv.fn(file_paths, out_path, params)
         except RuntimeError as exc:
-            print(f"[ERROR] {exc}", file=sys.stderr)
+            print(f"{color.red('[ERROR]')} {exc}", file=sys.stderr)
             return 1
 
     elif mode == "in-place":
@@ -189,28 +190,22 @@ def _cmd_convert(positionals: list, overwrite: bool) -> int:
         for fp in file_paths:
             if fp.suffix.lstrip(".").lower() != input_ext:
                 continue
-            if explicit_output:
-                out_path = explicit_output
-            else:
-                out_path = fp  # in-place
-            print(f"[CONVERT] {fp} → {out_path}  [{conv.name}]")
+            out_path = explicit_output or fp
+            _print_convert([fp], out_path)
             try:
                 conv.fn([fp], out_path, params)
             except RuntimeError as exc:
-                print(f"[ERROR] {fp}: {exc}", file=sys.stderr)
+                print(f"{color.red('[ERROR]')} {fp}: {exc}", file=sys.stderr)
                 return 1
 
     else:  # per-file
         for fp in file_paths:
-            if explicit_output:
-                out_path = explicit_output
-            else:
-                out_path = Path.cwd() / f"{fp.stem}.{to_ext}"
-            print(f"[CONVERT] {fp} → {out_path}  [{conv.name}]")
+            out_path = explicit_output or (Path.cwd() / f"{fp.stem}.{to_ext}")
+            _print_convert([fp], out_path)
             try:
                 conv.fn([fp], out_path, params)
             except RuntimeError as exc:
-                print(f"[ERROR] {fp}: {exc}", file=sys.stderr)
+                print(f"{color.red('[ERROR]')} {fp}: {exc}", file=sys.stderr)
                 return 1
 
     return 0
@@ -236,34 +231,31 @@ def _cmd_deps(targets: list) -> int:
             continue
         seen.add(conv.name)
         from_str = ",".join(conv.from_formats)
-        print(f"\n{conv.name}  ({from_str} → {conv.to_format})  [{layer}]")
+        print(f"\n{conv.name}  ({from_str} → {conv.to_format})  {color.dim(f'[{layer}]')}")
         if not conv.deps:
-            print("  (no external deps)")
+            print(f"  {color.dim('(no external deps)')}")
             continue
         for dep in conv.deps:
             ok, path, ver = core.dep_info(dep)
-            mark = "✓" if ok else "✗"
-            loc = f"  {path}" if ok else ""
-            ver_str = f"  {ver[:60]}" if ver else ""
+            mark = color.green("✓") if ok else color.red("✗")
+            loc = color.dim(f"  {path}") if ok else ""
+            ver_str = color.dim(f"  {ver[:60]}") if ver else ""
             print(f"  {mark}  {dep:<16}{loc}{ver_str}")
     return 0
 
 
 def _cmd_methods(targets: list) -> int:
     if not targets:
-        print("[ERROR] Specify at least one TARGET extension.", file=sys.stderr)
+        print(f"{color.red('[ERROR]')} Specify at least one output extension.", file=sys.stderr)
         return 1
     convs = core.load_converters()
     for t in targets:
         to_ext = _output_ext(t)
         print(f"\n→ {to_ext}")
-        matched = [
-            (c, l) for c, l in convs if c.to_format == to_ext
-        ]
+        matched = [(c, l) for c, l in convs if c.to_format == to_ext]
         if not matched:
-            print("  (no converters registered)")
+            print(f"  {color.dim('(no converters registered)')}")
             continue
-        # Determine which would be selected for various input types
         all_froms = sorted({f for c, _ in matched for f in c.from_formats})
         first_selected = set()
         for from_ext in all_froms:
@@ -273,67 +265,67 @@ def _cmd_methods(targets: list) -> int:
 
         for conv, layer in matched:
             deps_ok = all(shutil.which(d) for d in conv.deps)
-            mark = "✓" if deps_ok else "✗"
+            mark = color.green("✓") if deps_ok else color.red("✗")
             dep_str = ", ".join(
-                f"{d} {'✓' if shutil.which(d) else '✗'}" for d in conv.deps
-            ) or "(none)"
-            params_str = conv.params or "(none)"
-            selected_tag = " ← would be selected" if conv.name in first_selected else ""
+                f"{d} {color.green('✓') if shutil.which(d) else color.red('✗')}"
+                for d in conv.deps
+            ) or color.dim("(none)")
+            params_str = conv.params or color.dim("(none)")
+            selected_tag = f"  {color.green('← would be selected')}" if conv.name in first_selected else ""
             print(
                 f"  {mark}  {conv.name:<30}  deps: {dep_str:<40}"
-                f"  params: {params_str[:40]:<42}  [{layer}]{selected_tag}"
+                f"  params: {params_str[:40]:<42}  {color.dim(f'[{layer}]')}{selected_tag}"
             )
     return 0
 
 
 def _cmd_inputs(exts: list) -> int:
     if not exts:
-        print("[ERROR] Specify at least one output extension.", file=sys.stderr)
+        print(f"{color.red('[ERROR]')} Specify at least one output extension.", file=sys.stderr)
         return 1
     convs = core.load_converters()
     for ext in exts:
         to_ext = ext.lower().lstrip(".")
         matched = [(c, l) for c, l in convs if c.to_format == to_ext]
         from_formats = sorted({f for c, _ in matched for f in c.from_formats})
-        print(f"→ {to_ext}:  {', '.join(from_formats) or '(none)'}")
+        print(f"→ {to_ext}:  {', '.join(from_formats) or color.dim('(none)')}")
     return 0
 
 
 def _cmd_outputs(exts: list) -> int:
     if not exts:
-        print("[ERROR] Specify at least one input extension.", file=sys.stderr)
+        print(f"{color.red('[ERROR]')} Specify at least one input extension.", file=sys.stderr)
         return 1
     convs = core.load_converters()
     for ext in exts:
         from_ext = ext.lower().lstrip(".")
         to_formats = sorted({c.to_format for c, _ in convs if from_ext in c.from_formats})
-        print(f"{from_ext} →:  {', '.join(to_formats) or '(none)'}")
+        print(f"{from_ext} →:  {', '.join(to_formats) or color.dim('(none)')}")
     return 0
 
 
-def _cmd_recover(args: list) -> int:
-    ext = args[0] if args else None
-    core.recover_from_trash(ext)
+def _cmd_recover(ext_list: list) -> int:
+    core.recover_from_trash(ext_list[0] if ext_list else None)
     return 0
 
 
-def _cmd_init(args: list) -> int:
+def _cmd_init(tool: Optional[str]) -> int:
     builtin_dir = Path(__file__).parent / "converters"
     user_dir = Path("~/.config/fcx/converters").expanduser()
 
-    if not args:
-        print("Built-in converter files (use --init TOOL to copy one to user config):")
+    if tool is None:
+        print("Built-in converter files (use -I TOOL to copy one to user config):")
         for f in sorted(builtin_dir.glob("*.py")):
             if not f.name.startswith("_"):
                 print(f"  {f.stem}")
         print(f"\nUser config dir: {user_dir}")
         return 0
 
-    tool = args[0].lower().rstrip(".py")
+    tool = tool.lower().rstrip(".py")
     src = builtin_dir / f"{tool}.py"
     if not src.exists():
-        print(f"[ERROR] No built-in converter: {tool!r}", file=sys.stderr)
-        print("Run  fcx --init  to list available files.", file=sys.stderr)
+        print(f"{color.red('[ERROR]')} No built-in converter: {tool!r}", file=sys.stderr)
+        print("Run  fcx -I  to list available files.", file=sys.stderr)
         return 1
 
     user_dir.mkdir(parents=True, exist_ok=True)
@@ -341,12 +333,12 @@ def _cmd_init(args: list) -> int:
 
     header = (
         f"# fcx user override — {tool}.py\n"
-        f"# Copied from built-in by:  fcx --init {tool}\n"
+        f"# Copied from built-in by:  fcx -I {tool}\n"
         f"# Edit freely.  Delete this file to revert to the built-in version.\n"
         f"# Built-in source: {src}\n\n"
     )
     dst.write_text(header + src.read_text())
-    print(f"[INIT] Written: {dst}")
+    print(f"{color.cyan('[INIT]')} Written: {dst}")
     return 0
 
 
@@ -358,19 +350,17 @@ def main():
     core.verbose = args["--verbose"]
     core.dry_run = args["--dry-run"]
 
-    positionals = args["ARGS"]
-
     if args["--deps"]:
-        sys.exit(_cmd_deps(positionals))
+        sys.exit(_cmd_deps(args["EXT"] or []))
     elif args["--methods"]:
-        sys.exit(_cmd_methods(positionals))
+        sys.exit(_cmd_methods(args["OEXT"] or []))
     elif args["--inputs"]:
-        sys.exit(_cmd_inputs(positionals))
+        sys.exit(_cmd_inputs(args["OEXT"] or []))
     elif args["--outputs"]:
-        sys.exit(_cmd_outputs(positionals))
+        sys.exit(_cmd_outputs(args["IEXT"] or []))
     elif args["--recover"]:
-        sys.exit(_cmd_recover(positionals))
+        sys.exit(_cmd_recover(args["EXT"] or []))
     elif args["--init"]:
-        sys.exit(_cmd_init(positionals))
+        sys.exit(_cmd_init(args["TOOL"]))
     else:
-        sys.exit(_cmd_convert(positionals, overwrite=args["--overwrite"]))
+        sys.exit(_cmd_convert(args["ARGS"] or [], overwrite=args["--overwrite"]))

@@ -73,12 +73,18 @@ Only the tools needed for your conversions need to be installed. Use `fcx -d` to
 ## CLI reference
 
 ```
-fcx — File Converter
+fcx — File Converter Exchange
 
 Convert files to a different format or apply in-place transforms.
 Inputs are merged (pdf, txt) or converted individually (img, same-format).
 
 Usage:
+  fcx (-d | --deps)    [EXT ...]
+  fcx (-m | --methods) OEXT [OEXT ...]
+  fcx (-i | --inputs)  OEXT [OEXT ...]
+  fcx (-o | --outputs) IEXT [IEXT ...]
+  fcx (-R | --recover) [EXT]
+  fcx (-I | --init)    [TOOL]
   fcx [options] [ARGS ...]
   fcx -h | --help
   fcx --version
@@ -86,11 +92,11 @@ Usage:
 Options:
   -h --help        Show this screen.
   --version        Show version.
-  -I --init        Copy built-in converter file(s) to ~/.config/fcx/converters/.
-  -d --deps        Check deps for all converters, or for named TARGET ext(s).
-  -m --methods     List all converters for each TARGET ext.
-  -i --inputs      List input extensions that can produce each output ext.
-  -o --outputs     List output extensions producible from each input ext.
+  -I --init        List built-in converter files or copy TOOL to user config dir.
+  -d --deps        Check deps for all converters, or filter by EXT(s).
+  -m --methods     List converters for each output OEXT.
+  -i --inputs      List source formats that produce each output OEXT.
+  -o --outputs     List output formats each input IEXT can produce.
   -R --recover     Restore most-recent fcx backup from Trash into CWD.
   -O --overwrite   Skip trash backup for same-format (in-place) transforms.
   -v --verbose     Stream live stdout/stderr from every shell command.
