@@ -170,8 +170,9 @@ def _load_layer(directory: Path) -> list:
 def load_converters() -> list:
     """Return merged converter list as [(Converter, layer_str), ...].
 
-    Three layers merged by Converter.name (later wins for same names).
-    Unique names from system/user layers are prepended (highest priority first).
+    Three layers merged by (Converter.name, Converter.to_format) — same name
+    for different output formats are distinct entries. Later layers win for the
+    same key. Unique keys from system/user layers are prepended (highest priority).
     """
     builtin_dir = Path(__file__).parent / "converters"
     system_dir = Path("/etc/xdg/fcx/converters")
@@ -181,29 +182,32 @@ def load_converters() -> list:
     system_convs = [(c, "system") for c in _load_layer(system_dir)]
     user_convs = [(c, "user") for c in _load_layer(user_dir)]
 
-    # Build ordered map: name → (Converter, layer)
+    # Build ordered map: (name, to_format) → (Converter, layer)
     order: list = []
     registry: dict = {}
 
     for conv, layer in builtin_convs:
-        registry[conv.name] = (conv, layer)
-        order.append(conv.name)
+        key = (conv.name, conv.to_format)
+        registry[key] = (conv, layer)
+        order.append(key)
 
     for conv, layer in system_convs:
-        if conv.name in registry:
-            registry[conv.name] = (conv, layer)  # replace, keep position
+        key = (conv.name, conv.to_format)
+        if key in registry:
+            registry[key] = (conv, layer)  # replace, keep position
         else:
-            registry[conv.name] = (conv, layer)
-            order.insert(0, conv.name)            # unique → prepend
+            registry[key] = (conv, layer)
+            order.insert(0, key)            # unique → prepend
 
     for conv, layer in user_convs:
-        if conv.name in registry:
-            registry[conv.name] = (conv, layer)  # replace, keep position
+        key = (conv.name, conv.to_format)
+        if key in registry:
+            registry[key] = (conv, layer)  # replace, keep position
         else:
-            registry[conv.name] = (conv, layer)
-            order.insert(0, conv.name)            # unique → prepend
+            registry[key] = (conv, layer)
+            order.insert(0, key)            # unique → prepend
 
-    return [(registry[name][0], registry[name][1]) for name in order]
+    return [(registry[k][0], registry[k][1]) for k in order]
 
 
 def select_converter(convs: list, from_ext: str, to_ext: str, method: Optional[str] = None):

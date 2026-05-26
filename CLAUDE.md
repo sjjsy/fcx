@@ -51,7 +51,7 @@ recent matching backup into CWD.
 ## Converter registry and layering
 
 Converters are `Converter` dataclass instances collected in `CONVERTERS` lists.
-Three layers, merged at startup by `Converter.name` (later wins):
+Three layers, merged at startup by `(Converter.name, Converter.to_format)` (later wins):
 
 ```
 1. built-in   fcx/converters/*.py
@@ -59,8 +59,8 @@ Three layers, merged at startup by `Converter.name` (later wins):
 3. user       ~/.config/fcx/converters/*.py   ← highest priority
 ```
 
-Same name → user version supersedes built-in. Unique name → both available,
-user's listed first. `--methods TARGET` shows source layer for each entry.
+Same (name, to_format) → user version supersedes built-in. Unique key → both
+available, user's listed first. `--methods TARGET` shows source layer for each entry.
 
 ## Converter files named by backend tool, not by format
 
@@ -96,8 +96,9 @@ class Converter:
     fn: Callable[[Path, Path, str | None], None]
 ```
 
-Merge key: `Converter.name`. Selection: first in merged list whose deps are
-all on PATH. METHOD prefix in TARGET promotes matching converter to front.
+Merge key: `(Converter.name, Converter.to_format)`. Selection: first in merged
+list whose deps are all on PATH. METHOD prefix in TARGET promotes matching
+converter to front.
 
 ## Core helpers (fcx/core.py)
 

@@ -47,6 +47,12 @@ def _svg_to_img(srcs: List[Path], dst: Path, params: Optional[str]) -> None:
     run(["convert", str(srcs[0]), str(dst)])
 
 
+def _fit(srcs: List[Path], dst: Path, params: Optional[str]) -> None:
+    """Convert and resize to fit within WxH box, e.g. params='600x600'."""
+    pw, ph = parse_wxh(params or "1920x1920")
+    run(["convert", str(srcs[0]), "-resize", f"{pw}x{ph}>", str(dst)])
+
+
 # ── JPG in-place compression ─────────────────────────────────────────────────
 
 def _l0_jpg(srcs: List[Path], dst: Path, params: Optional[str]) -> None:
@@ -263,6 +269,22 @@ CONVERTERS = [
         deps=["convert"],
         params=None,
         fn=_any_to_any,
+    ),
+    Converter(
+        name="fit",
+        from_formats=_IMG_FROM + ("svg",),
+        to_format="png",
+        deps=["convert"],
+        params="WxH  max bounding box, e.g. 600x600",
+        fn=_fit,
+    ),
+    Converter(
+        name="fit",
+        from_formats=_IMG_FROM + ("svg",),
+        to_format="jpg",
+        deps=["convert"],
+        params="WxH  max bounding box, e.g. 600x600",
+        fn=_fit,
     ),
 
     # ── JPG in-place transforms ──
